@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タイピングテスト</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 20%;
+      background: #eef1f8;
+      padding: 2rem;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+    .sidebar h1 {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .sidebar button {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+    .main {
+      width: 80%;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+    }
+    #timer {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    #question {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+      margin-bottom: 1rem;
+      /* flex-grow: 1; */
+      /* overflow-y: auto; */
+			font-size: larger;
+    }
+    textarea {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      resize: vertical;
+    }
+    .highlight {
+      color: red;
+    }
+    .time-inputs {
+      margin-bottom: 1rem;
+    }
+    .time-inputs input {
+      width: 60px;
+      margin-right: 10px;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+  </style>
+  <script src="./data.js"></script> <!-- data.js を読み込む -->
+</head>
+<body>
+  <div class="sidebar">
+    <h1>タイピングテスト</h1>
+    <button onclick="changeQuestion()">問題変更</button>
+    <!--
+    <input type="file" id="jsonFileInput" accept="application/json">
+    <button onclick="manualStartTest()">開始</button>
+    <button onclick="checkMistakes()">間違いを探す</button>
+    -->
+  </div>
+  <div class="main">
+    <div class="time-inputs">
+      <input type="number" id="minInput" value="4" min="0">分
+      <input type="number" id="secInput" value="0" min="0" max="59">秒
+    </div>
+    <div id="timer">残り時間: 4:00</div>
+    <div id="question"></div>
+		 <textarea id="inputArea" rows="20" oninput="handleInput()" style="padding: 0.75rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 0.5rem; resize: none;"></textarea>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    let currentQuestion = "";
+    let timer;
+    let remainingTime = 0;
+    let timerStarted = false;
+    let totalTime = 0;
+
+    changeQuestion();
+
+    function normalize(text) {
+      return text.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, s =>
+        String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
+      );
+    }
+
+    function changeQuestion() {
+      if (questions.length === 0) return;
+      const randomIndex = Math.floor(Math.random() * questions.length);
+      currentQuestion = questions[randomIndex];
+      document.getElementById("question").textContent = currentQuestion;
+      document.getElementById("inputArea").value = "";
+      document.getElementById("result").textContent = "";
+      timerStarted = false;
+      clearInterval(timer);
+      updateTimer();
+    }
+
+    function startTest() {
+      const min = parseInt(document.getElementById("minInput").value) || 0;
+      const sec = parseInt(document.getElementById("secInput").value) || 0;
+      remainingTime = min * 60 + sec;
+      totalTime = remainingTime;
+      updateTimer();
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime <= 0) {
+          clearInterval(timer);
+          endTest();
+        } else {
+          updateTimer();
+        }
+      }, 1000);
+    }
+
+    function updateTimer() {
+      let displayTime = remainingTime;
+      if (!timerStarted && displayTime === 0) {
+        const min = parseInt(document.getElementById("minInput").value) || 0;
+        const sec = parseInt(document.getElementById("secInput").value) || 0;
+        displayTime = min * 60 + sec;
+        document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
+        return;
+      }
+      if (remainingTime <= 0) {
+        document.getElementById("timer").textContent = "終了！";
+        return;
+      }
+      const min = Math.floor(displayTime / 60);
+      const sec = displayTime % 60;
+      document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function handleInput() {
+      const input = document.getElementById("inputArea").value;
+      if (!timerStarted && input.length > 0) {
+        timerStarted = true;
+        startTest();
+      }
+      checkClear();
+      checkMistakes();
+    }
+
+    function checkClear() {
+      const input = normalize(document.getElementById("inputArea").value);
+      const target = normalize(currentQuestion);
+      if (input === target) {
+        clearInterval(timer);
+        const elapsed = totalTime - remainingTime;
+        const min = Math.floor(elapsed / 60);
+        const sec = elapsed % 60;
+        document.getElementById("timer").textContent = `クリア！時間: ${min}:${sec.toString().padStart(2, '0')}`;
+      }
+    }
+
+    function checkMistakes() {
+      const rawInput = document.getElementById("inputArea").value;
+      const input = normalize(rawInput);
+      const target = normalize(currentQuestion);
+      let highlightHTML = "";
+      for (let i = 0; i < target.length; i++) {
+        if (i < input.length && target[i] === input[i]) {
+          highlightHTML += `<strong>${currentQuestion[i]}</strong>`;
+        } else if (i < input.length) {
+          highlightHTML += `<span class='highlight'>${currentQuestion[i]}</span>`;
+        } else {
+          highlightHTML += currentQuestion[i];
+        }
+      }
+      document.getElementById("question").innerHTML = highlightHTML;
+    }
+    function endTest() {
+      const input = normalize(document.getElementById("inputArea").value);
+      const target = normalize(currentQuestion);
+      let correctChars = 0;
+      for (let i = 0; i < input.length && i < target.length; i++) {
+        if (input[i] === target[i]) correctChars++;
+      }
+      document.getElementById("result").textContent = `タイムアップ！正しく入力した文字数: ${correctChars} 文字`;
+    }
+  </script>
+</body>
+</html>
