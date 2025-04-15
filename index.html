@@ -39,9 +39,11 @@
     changeQuestion();
 
     function normalize(text) {
-      return text.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, s =>
-        String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
-      );
+      return text
+        .replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, s =>
+          String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
+        )
+        .replace(/\s/g, ' '); // 全角スペースを半角スペースに統一
     }
 
     function changeQuestion() {
