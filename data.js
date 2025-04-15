@@ -32,7 +32,5 @@ questions = questions.map(question =>
 	question
 		.replace(/[０-９]/g, char => String.fromCharCode(char.charCodeAt(0) - 0xFEE0)) // 全角数字を半角数字に変換
 		.replace(/ /g, '　') // 半角スペースを全角に変換
-		.replace(/,/g, '、') // 半角カンマを全角に変換
-		.replace(/)/g, '）') // 半角セミコロンを全角に変換
-	
+		.replace(/,/g, '、') // 半角カンマを全角に変換	
 );
