@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>タイピングテスト</title>
   <link rel="stylesheet" href="./style.css"> <!-- 外部CSSファイルを読み込む -->
-  <link rel="icon" href="./favicon_48x48.ico" type="image/x-icon"> 
-  <script src="./data.js"></script> <!-- data.js を読み込む -->
+  <script src="./data.js?v=2"></script> <!-- data.js を読み込む -->
+  <link rel="icon" href="./favicon_48x48.ico" type="image/x-icon"> <!-- favicon を設定 -->
 </head>
 <body>
   <div class="sidebar">
     <h1>タイピングテスト</h1>
-    <button onclick="changeQuestion()">問題変更</button>
+    <select id="questionSelector" onchange="setQuestionList(this.selectedIndex)">
+      <option value="0">須谷コレクション</option>
+      <option value="1">東島コレクション</option>
+    </select>
+    <button class="change-problem-button" onclick="changeQuestion()">
+        <span>問題変更</span>
+    </button>
     <!--
     <input type="file" id="jsonFileInput" accept="application/json">
     <button onclick="manualStartTest()">開始</button>
@@ -20,6 +26,9 @@
   </div>
   <div class="main">
     <div class="time-inputs">
+      <button class="change-problem-button" onclick="changeQuestion()">
+          <span>問題変更</span>
+      </button>
       <input type="number" id="minInput" value="4" min="0">分
       <input type="number" id="secInput" value="0" min="0" max="59">秒
     </div>
@@ -55,6 +64,9 @@
       document.getElementById("result").textContent = "";
       timerStarted = false;
       clearInterval(timer);
+      const min = parseInt(document.getElementById("minInput").value) || 0;
+      const sec = parseInt(document.getElementById("secInput").value) || 0;
+      remainingTime = min * 60 + sec;
       updateTimer();
     }
 

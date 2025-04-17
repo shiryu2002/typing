@@ -55,6 +55,18 @@ body {
   font-size: larger;
 }
 
+#questionSelector {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  color: #333;
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 textarea {
   padding: 0.75rem;
   font-size: 1rem;
@@ -76,4 +88,44 @@ textarea {
   margin-right: 10px;
   padding: 0.5rem;
   font-size: 1rem;
+}
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    width: 100%;
+  }
+
+  .time-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .time-inputs button {
+    padding: 0.5rem;
+    font-size: 1rem;
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+
+  .change-problem-button::after {
+    content: "🔁";
+  }
+  .change-problem-button span {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .time-inputs .change-problem-button {
+    display: none;
+  }
 }
