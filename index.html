@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>タイピングテスト</title>
   <link rel="stylesheet" href="./style.css"> <!-- 外部CSSファイルを読み込む -->
-  <script src="./data.js?v=3"></script> <!-- data.js を読み込む -->
+  <script src="./data.js?v=2"></script> <!-- data.js を読み込む -->
   <link rel="icon" href="./favicon_48x48.ico" type="image/x-icon"> <!-- favicon を設定 -->
 </head>
 <body>
@@ -45,6 +45,17 @@
     let remainingTime = 0;
     let timerStarted = false;
     let totalTime = 0;
+    let isIMEComposing = false; // IME入力中かどうかを管理
+
+    // テキストエリアにIMEイベントリスナーを追加
+    document.getElementById('inputArea').addEventListener('compositionstart', () => {
+      isIMEComposing = true;
+    });
+
+    document.getElementById('inputArea').addEventListener('compositionend', () => {
+      isIMEComposing = false;
+      handleInput(); // IME確定時に再チェック
+    });
 
     changeQuestion();
 
@@ -107,6 +118,8 @@
     }
 
     function handleInput() {
+      if (isIMEComposing) return; // IME入力中は検証をスキップ
+
       const input = document.getElementById("inputArea").value;
       if (!timerStarted && input.length > 0) {
         timerStarted = true;
