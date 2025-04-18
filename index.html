@@ -118,14 +118,14 @@
     }
 
     function handleInput() {
-      if (isIMEComposing) return; // IME入力中は検証をスキップ
-
+      
       const input = document.getElementById("inputArea").value;
       if (!timerStarted && input.length > 0) {
         timerStarted = true;
         startTest();
       }
       checkClear();
+			if (isIMEComposing) return; // IME入力中は検証をスキップ
       checkMistakes();
     }
 
