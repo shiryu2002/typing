@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=0.9">
+  <title>タイピングテスト</title>
+  <script src="./data.js?v=2"></script> <!-- data.js を読み込む -->
+  <link rel="icon" href="./favicon_48x48.ico" type="image/x-icon"> <!-- favicon を設定 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes explode {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+    }
+    @keyframes fragment-fall {
+      0% {
+        transform: translate(-50%, -50%) rotate(var(--angle, 0deg));
+        opacity: 1;
+      }
+      100% {
+        /* 360度方向に飛ばす: 角度をラジアンに変換してX,Yを計算 */
+        /* JSで--tx, --tyをセットする方式に変更 */
+        transform: translate(var(--tx, 0px), var(--ty, 0px)) rotate(calc(var(--angle, 0deg) + 360deg));
+        opacity: 0;
+      }
+    }
+    @keyframes sparkle {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+    @keyframes float-up {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+    }
+    .highlight {
+      background-color: #fecaca;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+    .correct {
+      color: #10b981;
+      font-weight: 500;
+      position: relative;
+    }
+    .next-char {
+      background-color: #93c5fd;
+      border-radius: 2px;
+      padding: 0 1px;
+      animation: pulse 1s infinite;
+    }
+    .bomb {
+      transition: all 0.5s ease;
+      transform-origin: center center;
+    }
+    .bomb-danger {
+      animation: pulse 0.5s infinite;
+    }
+    .bomb-explode {
+      animation: explode 0.5s forwards;
+      transform-origin: center center;
+    }
+    .bomb-fragment {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      background-color: #f59e0b;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: fragment-fall 1s forwards;
+    }
+    .sparkle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background-color: #10b981;
+      border-radius: 50%;
+      animation: sparkle 0.6s forwards;
+      pointer-events: none;
+    }
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      animation: float-up 1s forwards;
+      pointer-events: none;
+    }
+    .progress-ring {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .typing-text {
+      font-family: 'Courier New', monospace;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      position: relative;
+    }
+    .blink-cursor {
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    body {
+      transform: scale(0.9);
+      transform-origin: top center;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    .stat-card {
+      background-color: #f8fafc;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+			display: flex;
+			justify-content: space-between;
+    }
+    .stat-label {
+      color: #64748b;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+  </style>
+</head>
+<body class="font-inter bg-gray-50 text-gray-800 min-h-screen">
+  <div class="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+    <!-- サイドバー -->
+    <div class="lg:w-1/4 bg-white rounded-xl shadow-md p-6 flex flex-col">
+      <div class="flex items-center mb-6">
+        <div class="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">TT</div>
+        <h1 class="text-2xl font-bold text-gray-800">タイピングテスト</h1>
+      </div>
+      
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">問題セット</label>
+        <select id="questionSelector" onchange="setQuestionList(this.selectedIndex)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+          <option value="0">須谷コレクション</option>
+          <option value="1">東島コレクション</option>
+          <option value="2">ハイキュー！！タイピング</option>
+        </select>
+      </div>
+      
+      <button onclick="changeQuestion()" class="flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        問題を変更
+      </button>
+      
+      <!-- 統計情報をサイドバーに移動 -->
+      <div class="mb-6">
+        <div class="stat-card">
+          <div class="stat-label">進捗</div>
+          <div id="progress" class="stat-value">0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">正確さ</div>
+          <div id="accuracy" class="stat-value">0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">入力文字数</div>
+          <div id="typed-chars" class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">速度</div>
+          <div id="speed" class="stat-value">0 文字/分</div>
+        </div>
+      </div>
+      
+      <div class="mt-auto">
+        <div class="relative w-24 h-24 mx-auto mb-4">
+          <svg class="w-full h-full" viewBox="0 0 100 100">
+            <circle class="text-gray-200" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+            <circle class="progress-ring text-indigo-500" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+          </svg>
+          <div id="bomb" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
+            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+          </div>
+          <div id="bomb-fragments" class="absolute top-0 left-0 w-full h-full"></div>
+        </div>
+        <p class="text-center text-sm text-gray-500">タイマーが0になると爆発します</p>
+      </div>
+    </div>
+    
+    <!-- メインコンテンツ -->
+    <div class="lg:w-3/4 flex flex-col">
+      <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div class="flex items-center gap-4">
+            <button onclick="changeQuestion()" class="lg:hidden flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span class="hidden sm:inline">問題変更</span>
+            </button>
+            
+            <div class="flex items-center gap-2">
+              <input type="number" id="minInput" value="4" min="0" onchange="updateTimerDisplay()" class="w-16 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+              <span>分</span>
+              <input type="number" id="secInput" value="0" min="0" max="59" onchange="updateTimerDisplay()" class="w-16 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+              <span>秒</span>
+            </div>
+          </div>
+          
+          <div id="timer" class="text-2xl font-bold bg-gray-100 px-4 py-2 rounded-lg">
+            残り時間: 4:00
+          </div>
+        </div>
+        
+        <div id="question" class="typing-text bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6 text-lg leading-relaxed"></div>
+        
+        <textarea id="inputArea" rows="10" oninput="handleInput()" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none" placeholder="ここに入力してください..."></textarea>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    let currentQuestion = "";
+    let timer;
+    let remainingTime = 90; // 1分30秒で初期化
+    let timerStarted = false;
+    let totalTime = 90;
+    let isIMEComposing = false;
+    let progressRing;
+    let lastCorrectIndex = -1;
+    let testEnded = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // プログレスリングの設定
+      const circle = document.querySelector('.progress-ring');
+      const radius = circle.r.baseVal.value;
+      const circumference = radius * 2 * Math.PI;
+      
+      circle.style.strokeDasharray = `${circumference} ${circumference}`;
+      circle.style.strokeDashoffset = circumference;
+      
+      progressRing = {
+        circle: circle,
+        circumference: circumference,
+        setProgress: function(percent) {
+          var offset = this.circumference - percent / 100 * this.circumference;
+          this.circle.style.strokeDashoffset = offset;
+        }
+      };
+      
+      changeQuestion();
+      updateTimerDisplay();
+    });
+
+    document.getElementById('inputArea').addEventListener('compositionstart', () => {
+      isIMEComposing = true;
+    });
+
+    document.getElementById('inputArea').addEventListener('compositionend', () => {
+      isIMEComposing = false;
+      handleInput();
+    });
+
+    function normalize(text) {
+      return text
+        .replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, s =>
+          String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
+        )
+        .replace(/\s/g, ' ');
+    }
+
+    function updateTimerDisplay() {
+      const min = parseInt(document.getElementById("minInput").value) || 0;
+      const sec = parseInt(document.getElementById("secInput").value) || 0;
+      const totalSeconds = min * 60 + sec;
+      const displayMin = Math.floor(totalSeconds / 60);
+      const displaySec = totalSeconds % 60;
+      document.getElementById("timer").textContent = `残り時間: ${displayMin}:${displaySec.toString().padStart(2, '0')}`;
+    }
+
+    function changeQuestion() {
+      const questionSet = parseInt(document.getElementById("questionSelector").value);
+      questions = question_list[questionSet]; // 選択セットを反映
+      const randomIndex = Math.floor(Math.random() * questions.length);
+      currentQuestion = questions[randomIndex];
+      document.getElementById("question").textContent = currentQuestion;
+      document.getElementById("inputArea").value = "";
+      // 結果メッセージをリセット（要素がなければスキップ）
+      const resultMsg = document.getElementById("result-message");
+      if (resultMsg) resultMsg.innerHTML = '';
+      document.getElementById("progress").textContent = "0%";
+      document.getElementById("accuracy").textContent = "0%";
+      document.getElementById("typed-chars").textContent = "0";
+      document.getElementById("speed").textContent = "0 文字/分";
+      timerStarted = false;
+      testEnded = false;
+      clearInterval(timer);
+      // タイマー表示もリセット
+      const min = parseInt(document.getElementById("minInput").value) || 0;
+      const sec = parseInt(document.getElementById("secInput").value) || 0;
+      remainingTime = min * 60 + sec;
+      totalTime = remainingTime;
+      updateTimer();
+      lastCorrectIndex = -1;
+      // 爆弾をリセット
+      const bomb = document.getElementById('bomb');
+      bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center bomb';
+      bomb.style.display = 'flex';
+      // タイマー表示もリセット
+      document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
+      // プログレスリングもリセット
+      if (progressRing) progressRing.setProgress(100);
+      // 入力エリアにフォーカス
+      document.getElementById("inputArea").focus();
+    }
+
+    function startTest() {
+      const min = parseInt(document.getElementById("minInput").value) || 0;
+      const sec = parseInt(document.getElementById("secInput").value) || 0;
+      remainingTime = min * 60 + sec;
+      totalTime = remainingTime;
+      updateTimer();
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime <= 0) {
+          clearInterval(timer);
+          remainingTime = 0;
+          endTest(false); // クリア失敗として終了
+        } else {
+          updateTimer();
+        }
+      }, 1000);
+    }
+
+    function updateTimer() {
+      let displayTime = remainingTime;
+      if (!timerStarted && displayTime === 0) {
+        const min = parseInt(document.getElementById("minInput").value) || 0;
+        const sec = parseInt(document.getElementById("secInput").value) || 0;
+        displayTime = min * 60 + sec;
+        document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
+        updateBombAnimation(displayTime, min * 60 + sec);
+        return;
+      }
+      
+      const min = Math.floor(displayTime / 60);
+      const sec = displayTime % 60;
+      document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
+      updateBombAnimation(displayTime, totalTime);
+      
+      // プログレスリングの更新
+      const progressPercent = (remainingTime / totalTime) * 100;
+      progressRing.setProgress(progressPercent);
+    }
+
+    function updateBombAnimation(remaining, total) {
+      const bomb = document.getElementById('bomb');
+      bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center bomb';
+      
+      const ratio = total > 0 ? remaining / total : 1;
+      const scale = 1 + (1 - ratio) * 0.5;
+      bomb.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      
+      // 爆弾の色を時間に応じて変更
+      const bombFuse = bomb.querySelector('div');
+      if (ratio < 0.15) {
+        bomb.classList.add('bomb-danger');
+        bombFuse.className = 'w-2 h-2 bg-red-500 rounded-full ani	te-pulse';
+      } else if (ratio < 0.4) {
+        bombFuse.className = 'w-2 h-2 bg-yellow-500 rounded-full';
+      } else {
+        bombFuse.className = 'w-2 h-2 bg-red-500 rounded-full';
+      }
+    }
+
+	function showBombFragments() {
+		const container = document.getElementById('bomb-fragments');
+		container.innerHTML = '';
+		const colors = [
+			'bg-red-500', 'bg-yellow-400', 'bg-orange-400', 'bg-amber-400',
+			'bg-green-400', 'bg-blue-400', 'bg-pink-400', 'bg-purple-400'
+		];
+		const num = 32; // 粉末の数を増やして派手に
+		for (let i = 0; i < num; i++) {
+			const frag = document.createElement('div');
+			frag.className = `bomb-fragment ${colors[i % colors.length]}`;
+			const angleDeg = (360 / num) * i + Math.random() * 8; // 少しランダムに
+			const angleRad = angleDeg * Math.PI / 180;
+			const distance = 60 + Math.random() * 600; // より遠くまで飛ばす
+			const tx = Math.cos(angleRad) * distance;
+			const ty = Math.sin(angleRad) * distance;
+			frag.style.setProperty('--angle', `${angleDeg}deg`);
+			frag.style.setProperty('--tx', `${tx}px`);
+			frag.style.setProperty('--ty', `${ty}px`);
+			frag.style.setProperty('opacity', 0.85 + Math.random() * 0.15);
+			frag.style.filter = `blur(${Math.random() * 1.5}px)`;
+			frag.style.transition = 'box-shadow 0.2s';
+			frag.style.boxShadow = `0 0 8px 2px rgba(255,200,80,0.5)`;
+			frag.style.animationDelay = `${Math.random() * 0.15}s`;
+			container.appendChild(frag);
+		}
+		setTimeout(() => { container.innerHTML = ''; }, 1300);
+	}
+
+    function createSparkle(element) {
+      // スパークルを正解文字のspan内で中央上に絶対配置する
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      // 親spanをrelativeに
+      element.style.position = 'relative';
+      // スパークルをspanの中央上に配置
+      sparkle.style.position = 'absolute';
+      sparkle.style.left = '50%';
+      sparkle.style.top = '-12px'; // 文字の上に浮かせる
+      sparkle.style.transform = 'translateX(-50%)';
+      element.appendChild(sparkle);
+
+      sparkle.addEventListener('animationend', () => {
+        sparkle.remove();
+      });
+    }
+
+    function createConfetti(element) {
+      const rect = element.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      
+      for (let i = 0; i < 3; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = `${x + (Math.random() * 20 - 10)}px`;
+        confetti.style.top = `${y + (Math.random() * 20 - 10)}px`;
+        confetti.style.animationDelay = `${i * 0.1}s`;
+        
+        document.body.appendChild(confetti);
+        
+        confetti.addEventListener('animationend', () => {
+          confetti.remove();
+        });
+      }
+    }
+
+    function handleInput() {
+      if (testEnded) return;
+      
+      const input = document.getElementById("inputArea").value;
+      if (!timerStarted && input.length > 0) {
+        timerStarted = true;
+        startTest();
+      }
+      checkClear();
+      if (isIMEComposing) return;
+      checkMistakes();
+    }
+
+    function checkClear() {
+      const input = normalize(document.getElementById("inputArea").value);
+      const target = normalize(currentQuestion);
+      if (input === target) {
+        testEnded = true;
+        clearInterval(timer);
+        const elapsed = totalTime - remainingTime;
+        const min = Math.floor(elapsed / 60);
+        const sec = elapsed % 60;
+        document.getElementById("timer").innerHTML = `<span class="text-green-500">クリア！時間: ${min}:${sec.toString().padStart(2, '0')}</span>`;
+        
+        // クリア時のアニメーション
+        const correctElements = document.querySelectorAll('.correct');
+        correctElements.forEach(el => {
+          createConfetti(el);
+        });
+        
+        document.getElementById("result-message").innerHTML = `
+          <div class="bg-green-50 text-green-800 p-4 rounded-lg mb-4">
+            <h3 class="font-bold text-lg mb-2">クリアおめでとうございます！</h3>
+            <p>タイム: ${min}分${sec}秒</p>
+            <p>速度: ${Math.round((input.length / elapsed) * 60)} 文字/分</p>
+          </div>
+        `;
+      }
+    }
+
+    function endTest(success) {
+      testEnded = true;
+			progressRing.setProgress(0);
+      const input = normalize(document.getElementById("inputArea").value);
+      const target = normalize(currentQuestion);
+      let correctChars = 0;
+      
+      for (let i = 0; i < input.length && i < target.length; i++) {
+        if (input[i] === target[i]) correctChars++;
+      }
+      
+      const accuracy = Math.round((correctChars / input.length) * 100) || 0;
+      const speed = Math.round((input.length / totalTime) * 60) || 0;
+      
+      if (!success) {
+        // 爆発アニメーションを再生
+        const bomb = document.getElementById('bomb');
+        bomb.classList.add('bomb-explode');
+        showBombFragments();
+        bomb.addEventListener('animationend', () => {
+          bomb.style.display = 'none';
+        }, { once: true });
+        
+        document.getElementById("timer").innerHTML = '<span class="text-red-500">時間切れ！</span>';
+      }
+    }
+
+    function checkMistakes() {
+      const rawInput = document.getElementById("inputArea").value;
+      const input = normalize(rawInput);
+      const target = normalize(currentQuestion);
+      let highlightHTML = "";
+      
+      // 正解した文字にスパークルアニメーションを追加
+      const questionElement = document.getElementById("question");
+      const currentCorrectElements = [];
+      
+      for (let i = 0; i < target.length; i++) {
+        if (i < input.length) {
+          if (target[i] === input[i]) {
+            highlightHTML += `<span class="correct" data-index="${i}">${currentQuestion[i]}</span>`;
+            currentCorrectElements.push(i);
+          } else {
+            highlightHTML += `<span class="highlight">${currentQuestion[i]}</span>`;
+          }
+        } else if (i === input.length) {
+          highlightHTML += `<span class="next-char">${currentQuestion[i]}</span>`;
+        } else {
+          highlightHTML += currentQuestion[i];
+        }
+      }
+      
+      questionElement.innerHTML = highlightHTML;
+      
+      // 新しく正解した文字にスパークルアニメーションを追加
+      currentCorrectElements.forEach(index => {
+        if (index > lastCorrectIndex) {
+          const element = document.querySelector(`.correct[data-index="${index}"]`);
+          if (element) {
+            createSparkle(element);
+          }
+        }
+      });
+      
+      lastCorrectIndex = currentCorrectElements.length > 0 ? 
+        Math.max(...currentCorrectElements) : -1;
+      
+      // 進捗を結果表示
+      if (input.length > 0) {
+        let correctChars = 0;
+        for (let i = 0; i < input.length && i < target.length; i++) {
+          if (input[i] === target[i]) correctChars++;
+        }
+        const accuracy = Math.round((correctChars / input.length) * 100);
+        const speed = timerStarted ? Math.round((input.length / (totalTime - remainingTime)) * 60) : 0;
+        
+        document.getElementById("progress").textContent = `${Math.round((input.length / target.length) * 100)}%`;
+        document.getElementById("accuracy").textContent = `${accuracy}%`;
+        document.getElementById("typed-chars").textContent = input.length;
+        document.getElementById("speed").textContent = `${speed} 文字/分`;
+      }
+    }
+  </script>
+</body>
+</html>
