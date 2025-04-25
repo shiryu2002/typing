@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=0.9">
   <title>タイピングテスト</title>
-  <script src="../data.js?v=1"></script> <!-- data.js を読み込む -->
+  <script src="../data.js?v=2"></script> <!-- data.js を読み込む -->
   <link rel="icon" href="./favicon_48x48.ico" type="image/x-icon"> <!-- favicon を設定 -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -142,8 +142,8 @@
     <!-- サイドバー -->
     <div class="lg:w-1/4 bg-white rounded-xl shadow-md p-6 flex flex-col">
       <div class="flex items-center mb-6">
-        <div class="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">TT</div>
-        <h1 class="text-2xl font-bold text-gray-800">タイピングテスト</h1>
+        <img src="../favicon_48x48.ico" alt="TT Logo" class="w-10 h-10 rounded-lg mr-3">
+        <p class="text-2xl font-bold text-gray-800 text-center">タイピングテスト</p>
       </div>
       
       <div class="mb-6">
@@ -295,7 +295,12 @@
       questions = question_list[questionSet]; // 選択セットを反映
       const randomIndex = Math.floor(Math.random() * questions.length);
       currentQuestion = questions[randomIndex];
-      document.getElementById("question").textContent = currentQuestion;
+      // スペースを␣でspan表示するHTMLを生成
+      let highlightHTML = "";
+      for (let i = 0; i < currentQuestion.length; i++) {
+        highlightHTML += currentQuestion[i] === " " ? '<span class="space-char">␣</span>' : currentQuestion[i];
+      }
+      document.getElementById("question").innerHTML = highlightHTML;
       document.getElementById("inputArea").value = "";
       // 結果メッセージをリセット（要素がなければスキップ）
       const resultMsg = document.getElementById("result-message");
@@ -524,28 +529,26 @@
       const input = normalize(rawInput);
       const target = normalize(currentQuestion);
       let highlightHTML = "";
-      
       // 正解した文字にスパークルアニメーションを追加
       const questionElement = document.getElementById("question");
       const currentCorrectElements = [];
-      
       for (let i = 0; i < target.length; i++) {
+        // スペースは常に␣でspan表示
+        const displayChar = currentQuestion[i] === " " ? '<span class="space-char">␣</span>' : currentQuestion[i];
         if (i < input.length) {
           if (target[i] === input[i]) {
-            highlightHTML += `<span class="correct" data-index="${i}">${currentQuestion[i]}</span>`;
+            highlightHTML += `<span class="correct" data-index="${i}">${displayChar}</span>`;
             currentCorrectElements.push(i);
           } else {
-            highlightHTML += `<span class="highlight">${currentQuestion[i]}</span>`;
+            highlightHTML += `<span class="highlight">${displayChar}</span>`;
           }
         } else if (i === input.length) {
-          highlightHTML += `<span class="next-char">${currentQuestion[i]}</span>`;
+          highlightHTML += `<span class="next-char">${displayChar}</span>`;
         } else {
-          highlightHTML += currentQuestion[i];
+          highlightHTML += displayChar;
         }
       }
-      
       questionElement.innerHTML = highlightHTML;
-      
       // 新しく正解した文字にスパークルアニメーションを追加
       currentCorrectElements.forEach(index => {
         if (index > lastCorrectIndex) {
@@ -555,7 +558,6 @@
           }
         }
       });
-      
       lastCorrectIndex = currentCorrectElements.length > 0 ? 
         Math.max(...currentCorrectElements) : -1;
       
