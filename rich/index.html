@@ -135,6 +135,31 @@
       font-weight: 600;
       color: #1e293b;
     }
+    .progress-bar-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: #10b981;
+      border-radius: 0.5rem 0 0 0.5rem;
+      transition: width 0.4s cubic-bezier(.4,2,.6,1);
+      z-index: 1;
+    }
+    .progress-bar-text {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      width: 100%;
+      color: #1e293b;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+    .stat-card-grow {
+      animation: statCardGrow 0.5s cubic-bezier(.22,1.5,.36,1);
+    }
+    @keyframes statCardGrow {
+      0% { filter: brightness(1.1) scaleX(0.98); }
+      60% { filter: brightness(1.2) scaleX(1.04) scaleY(1.08); }
+      100% { filter: brightness(1) scaleX(1) scaleY(1); }
+    }
   </style>
 </head>
 <body class="font-inter bg-gray-50 text-gray-800 min-h-screen">
@@ -152,6 +177,8 @@
           <option value="0">須谷コレクション</option>
           <option value="1">東島コレクション</option>
           <option value="2">ハイキュー！！タイピング</option>
+          <option value="3">AI自動問題</option>
+					<option value="4">AI過去問</option>
         </select>
       </div>
       
@@ -164,9 +191,11 @@
       
       <!-- 統計情報をサイドバーに移動 -->
       <div class="mb-6">
-        <div class="stat-card">
+        <div class="stat-card" id="progress-stat-card" style="position:relative;">
           <div class="stat-label">進捗</div>
-          <div id="progress" class="stat-value">0%</div>
+          <div style="flex:1;min-width:0;display:flex;align-items:center;position:relative;">
+            <div id="progress" class="progress-bar-text" style="flex:1;text-align:right;position:relative;z-index:2;">0%</div>
+          </div>
         </div>
         <div class="stat-card">
           <div class="stat-label">正確さ</div>
@@ -195,6 +224,15 @@
         </div>
         <p class="text-center text-sm text-gray-500">タイマーが0になると爆発します</p>
       </div>
+			<div class="flex gap-4 mt-16">
+		<button onclick="downloadAIQuestions()" class="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white font-medium p-2 rounded-lg transition">
+    	AI問題をDL
+  	</button>
+ 	 <button onclick="clearAIArrStorage()" class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-medium p-2 rounded-lg transition">
+  		過去問データをクリア
+  	</button>
+			</div>
+
     </div>
     
     <!-- メインコンテンツ -->
@@ -225,7 +263,8 @@
         <div id="question" class="typing-text bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6 text-lg leading-relaxed"></div>
         
         <textarea id="inputArea" rows="10" oninput="handleInput()" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none" placeholder="ここに入力してください..."></textarea>
-      </div>
+					<div id="question-meta" style="text-align:right;font-size:1rem;color:#64748b;"></div>
+			</div>
       </div>
     </div>
   </div>
@@ -259,7 +298,7 @@
           this.circle.style.strokeDashoffset = offset;
         }
       };
-      
+      setQuestionList(0);
       changeQuestion();
       updateTimerDisplay();
     });
@@ -292,17 +331,60 @@
 
     function changeQuestion() {
       const questionSet = parseInt(document.getElementById("questionSelector").value);
-      questions = question_list[questionSet]; // 選択セットを反映
+      if (questionSet === 3) { // AI問題
+        document.getElementById("question").innerHTML = '<span class="text-gray-400">AI問題を生成中...</span>';
+        document.getElementById("inputArea").value = "";
+        // 他のUIリセットも必要ならここで
+        fetchAIQuestion().then(aiText => {
+          questions = [aiText];
+          // 通常の問題表示処理
+          if (!Array.isArray(questions) || questions.length === 0) return;
+          currentQuestion = questions[0];
+          let highlightHTML = "";
+          for (let i = 0; i < currentQuestion.length; i++) {
+            highlightHTML += currentQuestion[i] === " " ? '<span class="space-char">␣</span>' : currentQuestion[i];
+          }
+          document.getElementById("question").innerHTML = highlightHTML;
+          document.getElementById("inputArea").value = "";
+          const resultMsg = document.getElementById("result-message");
+          if (resultMsg) resultMsg.innerHTML = '';
+          document.getElementById("progress").textContent = "0%";
+          document.getElementById("accuracy").textContent = "0%";
+          document.getElementById("typed-chars").textContent = "0";
+          document.getElementById("speed").textContent = "0 文字/分";
+          timerStarted = false;
+          testEnded = false;
+          clearInterval(timer);
+          const min = parseInt(document.getElementById("minInput").value) || 0;
+          const sec = parseInt(document.getElementById("secInput").value) || 0;
+          remainingTime = min * 60 + sec;
+          totalTime = remainingTime;
+          updateTimer();
+          lastCorrectIndex = -1;
+          const bomb = document.getElementById('bomb');
+          bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center';
+          bomb.style.display = 'flex';
+          document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
+          if (progressRing) progressRing.setProgress(100);
+          document.getElementById("inputArea").focus();
+					const QuestionLength = updateQuestionMeta();
+					if (QuestionLength <=175  || QuestionLength >= 220){
+						console.log("文字数が多すぎ|足りないので再生成します")
+						changeQuestion();
+					}
+        });
+        return;
+      }
+      // 他の問題セットの場合の処理
+      if (!Array.isArray(questions) || questions.length === 0) return;
       const randomIndex = Math.floor(Math.random() * questions.length);
       currentQuestion = questions[randomIndex];
-      // スペースを␣でspan表示するHTMLを生成
       let highlightHTML = "";
       for (let i = 0; i < currentQuestion.length; i++) {
         highlightHTML += currentQuestion[i] === " " ? '<span class="space-char">␣</span>' : currentQuestion[i];
       }
       document.getElementById("question").innerHTML = highlightHTML;
       document.getElementById("inputArea").value = "";
-      // 結果メッセージをリセット（要素がなければスキップ）
       const resultMsg = document.getElementById("result-message");
       if (resultMsg) resultMsg.innerHTML = '';
       document.getElementById("progress").textContent = "0%";
@@ -312,23 +394,19 @@
       timerStarted = false;
       testEnded = false;
       clearInterval(timer);
-      // タイマー表示もリセット
       const min = parseInt(document.getElementById("minInput").value) || 0;
       const sec = parseInt(document.getElementById("secInput").value) || 0;
       remainingTime = min * 60 + sec;
       totalTime = remainingTime;
       updateTimer();
       lastCorrectIndex = -1;
-      // 爆弾をリセット
       const bomb = document.getElementById('bomb');
-      bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center bomb';
+      bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center';
       bomb.style.display = 'flex';
-      // タイマー表示もリセット
       document.getElementById("timer").textContent = `残り時間: ${min}:${sec.toString().padStart(2, '0')}`;
-      // プログレスリングもリセット
       if (progressRing) progressRing.setProgress(100);
-      // 入力エリアにフォーカス
       document.getElementById("inputArea").focus();
+			updateQuestionMeta();
     }
 
     function startTest() {
@@ -372,7 +450,7 @@
 
     function updateBombAnimation(remaining, total) {
       const bomb = document.getElementById('bomb');
-      bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center bomb';
+      bomb.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center';
       
       const ratio = total > 0 ? remaining / total : 1;
       const scale = 1 + (1 - ratio) * 0.5;
@@ -524,6 +602,43 @@
       }
     }
 
+		function updateQuestionMeta() {
+		const metaDiv = document.getElementById("question-meta");
+		if (!metaDiv) return;
+		if (!currentQuestion) {
+			metaDiv.textContent = "";
+			return;
+		}
+		// 改行や空白も含めて文字数をカウント
+		metaDiv.textContent = `文字数: ${currentQuestion.length}`;
+		return currentQuestion.length;
+		}
+
+    function clearAIArrStorage() {
+      localStorage.removeItem('ai_text_collection');
+      alert('AI作成済み問題の保存データをクリアしました。');
+      // もしAI作成済み問題タブを表示中なら即時反映
+      const selector = document.getElementById('questionSelector');
+      if (selector && selector.value === '4') {
+        setQuestionList(4);
+      }
+    }
+
+		function downloadAIQuestions() {
+      let aiArr = [];
+      try {
+        aiArr = JSON.parse(localStorage.getItem('ai_text_collection') || '[]');
+      } catch(e) { aiArr = []; }
+      const content = 'const ai_text_collection = ' + JSON.stringify(aiArr, null, 2) + ';\n';
+      const blob = new Blob([content], {type: 'text/javascript'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ai_text.js';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
     function checkMistakes() {
       const rawInput = document.getElementById("inputArea").value;
       const input = normalize(rawInput);
@@ -569,11 +684,14 @@
         }
         const accuracy = Math.round((correctChars / input.length) * 100);
         const speed = timerStarted ? Math.round((input.length / (totalTime - remainingTime)) * 60) : 0;
-        
-        document.getElementById("progress").textContent = `${Math.round((input.length / target.length) * 100)}%`;
-        document.getElementById("accuracy").textContent = `${accuracy}%`;
-        document.getElementById("typed-chars").textContent = input.length;
-        document.getElementById("speed").textContent = `${speed} 文字/分`;
+        const progressPercent = Math.round((input.length / target.length) * 100);
+        document.getElementById("progress").textContent = `${progressPercent}%`;
+        // stat-card背景グラデーション更新
+        const statCard = document.getElementById("progress-stat-card");
+        statCard.style.background = `linear-gradient(to right, #10b981 ${progressPercent}%, #f8fafc ${progressPercent}%)`;
+      } else {
+        document.getElementById("progress").textContent = `0%`;
+        document.getElementById("progress-stat-card").style.background = "#f8fafc";
       }
     }
   </script>
