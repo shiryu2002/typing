@@ -190,6 +190,7 @@
           <option value="2">ハイキュー！！タイピング</option>
           <option value="3">AI自動問題</option>
 					<option value="4">AI過去問</option>
+					<option value="5">キラキラアイドル✨みくちゃん</option>
         </select>
       </div>
       
@@ -341,6 +342,8 @@
     }
 
     function changeQuestion() {
+			const statCard = document.getElementById("progress-stat-card");
+			statCard.style.background = "white";
       const questionSet = parseInt(document.getElementById("questionSelector").value);
       if (questionSet === 3) { // AI問題
         document.getElementById("question").innerHTML = '<span class="text-gray-400">AI問題を生成中...</span>';
@@ -500,7 +503,7 @@
 			'bg-red-500', 'bg-yellow-400', 'bg-orange-400', 'bg-amber-400',
 			'bg-green-400', 'bg-blue-400', 'bg-pink-400', 'bg-purple-400'
 		];
-		const num = 32; // 粉末の数を増やして派手に
+		const num = 1000; // 粉末の数を増やして派手に
 		for (let i = 0; i < num; i++) {
 			const frag = document.createElement('div');
 			frag.className = `bomb-fragment ${colors[i % colors.length]}`;
@@ -568,9 +571,9 @@
         timerStarted = true;
         startTest();
       }
+      checkMistakes();
       checkClear();
       if (isIMEComposing) return;
-      checkMistakes();
     }
 
     function checkClear() {
@@ -589,6 +592,10 @@
         correctElements.forEach(el => {
           createConfetti(el);
         });
+        // 進捗100%＆虹色背景
+        document.getElementById("progress").textContent = "100%";
+        const statCard = document.getElementById("progress-stat-card");
+				statCard.style.background = "linear-gradient(90deg, rgba(255,0,0,0.3), rgba(255,153,0,0.3), rgba(255,238,0,0.3), rgba(51,255,0,0.3), rgba(0,255,238,0.3), rgba(0,102,255,0.3), rgba(204,0,255,0.3))";
         
         document.getElementById("result-message").innerHTML = `
           <div class="bg-green-50 text-green-800 p-4 rounded-lg mb-4">
