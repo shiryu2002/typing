@@ -519,7 +519,7 @@
 
     function handleInput() {
       if (testEnded) return;
-      
+      if (isIMEComposing) return;
       const input = document.getElementById("inputArea").value;
       if (!timerStarted && input.length > 0) {
         timerStarted = true;
@@ -527,7 +527,6 @@
       }
       checkMistakes();
       checkClear();
-      if (isIMEComposing) return;
     }
 
     function checkClear() {
