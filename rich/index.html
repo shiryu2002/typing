@@ -686,6 +686,9 @@
         const speed = timerStarted ? Math.round((input.length / (totalTime - remainingTime)) * 60) : 0;
         const progressPercent = Math.round((input.length / target.length) * 100);
         document.getElementById("progress").textContent = `${progressPercent}%`;
+				document.getElementById("accuracy").textContent = `${accuracy}%`;
+        document.getElementById("typed-chars").textContent = input.length;
+        document.getElementById("speed").textContent = `${speed} 文字/分`;
         // stat-card背景グラデーション更新
         const statCard = document.getElementById("progress-stat-card");
         statCard.style.background = `linear-gradient(to right, #10b981 ${progressPercent}%, #f8fafc ${progressPercent}%)`;

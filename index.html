@@ -18,12 +18,13 @@
     </select>
     <button class="change-problem-button" onclick="changeQuestion()">
         <span>問題変更</span>
-    </button>
-    <!--
-    <input type="file" id="jsonFileInput" accept="application/json">
-    <button onclick="manualStartTest()">開始</button>
-    <button onclick="checkMistakes()">間違いを探す</button>
-    -->
+		</button>
+		<br><br>
+		<a href="./rich/" class="rich" style="text-align: center; display: block;">
+			<span>✨️リッチver✨️</span>
+		</a>
+	</div>
+
   </div>
   <div class="main">
     <div class="time-inputs">
@@ -71,7 +72,8 @@
       if (questions.length === 0) return;
       const randomIndex = Math.floor(Math.random() * questions.length);
       currentQuestion = questions[randomIndex];
-      document.getElementById("question").textContent = currentQuestion;
+      // スペースを␣に変換して表示
+      document.getElementById("question").innerHTML = currentQuestion.replace(/ /g, '␣');
       document.getElementById("inputArea").value = "";
       document.getElementById("result").textContent = "";
       timerStarted = false;
@@ -147,12 +149,14 @@
       const target = normalize(currentQuestion);
       let highlightHTML = "";
       for (let i = 0; i < target.length; i++) {
+        // スペースを␣に変換して表示
+        const displayChar = currentQuestion[i] === " " ? '␣' : currentQuestion[i];
         if (i < input.length && target[i] === input[i]) {
-          highlightHTML += `<strong>${currentQuestion[i]}</strong>`;
+          highlightHTML += `<strong>${displayChar}</strong>`;
         } else if (i < input.length) {
-          highlightHTML += `<span class='highlight'>${currentQuestion[i]}</span>`;
+          highlightHTML += `<span class='highlight'>${displayChar}</span>`;
         } else {
-          highlightHTML += currentQuestion[i];
+          highlightHTML += displayChar;
         }
       }
       document.getElementById("question").innerHTML = highlightHTML;
