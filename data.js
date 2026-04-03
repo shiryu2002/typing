@@ -63,6 +63,7 @@ question_list = [
 ]; 
 
 let questions = question_list[0]; // 初期値をsuya_collectionに設定
+let isAIMode = false;
 
 async function fetchAIQuestion() {
   // Cloudflare Workers 経由で Gemini API を呼び出し
@@ -87,7 +88,8 @@ async function fetchAIQuestion() {
 	// ・日本の都道府県を知名度に関わらずランダムに一つ選びその場所について
 
   const body = {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 1.5 }
   };
   try {
     const res = await fetch(endpoint, {
@@ -123,13 +125,26 @@ async function fetchAIQuestion() {
 
 question_list.push([]); // 4番目: AI作成済み問題
 
+let _aiGenerating = false;
+
+function regenerateAIQuestion(fromButton) {
+  if (_aiGenerating) return;
+  _aiGenerating = true;
+  document.getElementById("question").innerHTML = '<span class="text-gray-400">AI問題を生成中...</span>';
+  fetchAIQuestion().then(aiText => {
+    _aiGenerating = false;
+    questions = [aiText];
+    // changeQuestionを経由せず直接表示（無限ループ防止）
+    let el = document.getElementById("question");
+    if (el) el.innerHTML = aiText.replace(/ /g, '␣');
+    document.getElementById("inputArea").value = "";
+  });
+}
+
 function setQuestionList(index) {
 	if (index === 3) { // AI問題
-    document.getElementById("question").innerHTML = '<span class="text-gray-400">AI問題を生成中...</span>';
-		fetchAIQuestion().then(aiText => {
-			questions = [aiText]
-			changeQuestion();
-		});
+    isAIMode = true;
+    regenerateAIQuestion();
 	} else if (index === 4) { // AI作成済み問題
     // localStorageから取得
     let aiArr = [];
@@ -141,6 +156,7 @@ function setQuestionList(index) {
     // DLボタン表示
     showAIDownloadButton();
   } else {
+    isAIMode = false;
 		questions = question_list[index];
 		changeQuestion();
     // DLボタン非表示
