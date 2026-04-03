@@ -98,6 +98,12 @@ async function fetchAIQuestion() {
       body: JSON.stringify(body)
     });
     const data = await res.json();
+    // 429レート制限チェック
+    if (data.error && data.error.code === 429) {
+      const retryDetail = data.error.details?.find(d => d.retryDelay);
+      const delaySec = retryDetail ? Math.ceil(parseFloat(retryDetail.retryDelay)) : 60;
+      return { rateLimited: true, delaySec };
+    }
     // Geminiのレスポンスからテキストを抽出
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'AI生成に失敗しました';
     const aiText = text.trimEnd();
@@ -127,12 +133,28 @@ question_list.push([]); // 4番目: AI作成済み問題
 
 let _aiGenerating = false;
 
+function setChangeButtonsDisabled(disabled) {
+  document.querySelectorAll('.change-problem-button, button[onclick="changeQuestion()"]')
+    .forEach(btn => { btn.disabled = disabled; btn.style.opacity = disabled ? '0.5' : ''; });
+}
+
 function regenerateAIQuestion(fromButton) {
   if (_aiGenerating) return;
   _aiGenerating = true;
   document.getElementById("question").innerHTML = '<span class="text-gray-400">AI問題を生成中...</span>';
-  fetchAIQuestion().then(aiText => {
+  fetchAIQuestion().then(result => {
     _aiGenerating = false;
+    if (result && result.rateLimited) {
+      const sec = result.delaySec;
+      document.getElementById("question").innerHTML =
+        '<span class="text-red-500" style="color:red;">レート制限中です。' + sec + '秒後に再試行してください。</span>';
+      if (isAIMode) {
+        setChangeButtonsDisabled(true);
+        setTimeout(() => setChangeButtonsDisabled(false), sec * 1000);
+      }
+      return;
+    }
+    const aiText = result;
     questions = [aiText];
     // changeQuestionを経由せず直接表示（無限ループ防止）
     let el = document.getElementById("question");
