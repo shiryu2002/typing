@@ -146,6 +146,7 @@ function setQuestionList(index) {
     isAIMode = true;
     regenerateAIQuestion();
 	} else if (index === 4) { // AI作成済み問題
+    isAIMode = false;
     // localStorageから取得
     let aiArr = [];
     try {
